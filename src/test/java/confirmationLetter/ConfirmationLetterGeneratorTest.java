@@ -2,7 +2,9 @@ package confirmationLetter;
 
 import dao.CurrencyDao;
 import domain.BatchTotal;
+import domain.Client;
 import domain.HashBatchRecordsBalance;
+import domain.Record;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import record.service.impl.Constants;
@@ -16,7 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConfirmationLetterGeneratorTest {
 
     private ConfirmationLetterGenerator confirmationLetterGenerator;
-    HashBatchRecordsBalance recordsBalance;
+    private HashBatchRecordsBalance recordsBalance;
+    private Client client;
 
     private BatchTotal createBatchTotal(int number, String sign) {
         BatchTotal bt = new BatchTotal();
@@ -34,6 +37,7 @@ class ConfirmationLetterGeneratorTest {
     {
         confirmationLetterGenerator = new ConfirmationLetterGenerator();
         recordsBalance = new HashBatchRecordsBalance();
+        client = new Client();
     }
 
     /** It is just an example of how you can write tests in Junit. */
@@ -73,4 +77,21 @@ class ConfirmationLetterGeneratorTest {
         assertEquals(new BigDecimal(11), recordsBalance.calculateTotalOverBatches(1, Constants.CREDIT));
     }
 
+    @Test
+    public void testIsBalanced_TRUE() {
+        client.setCounterTransfer(Constants.TRUE);
+        assert(client.isBalanced());
+    }
+
+    @Test
+    public void testIsBalanced_FALSE() {
+        client.setCounterTransfer("FALSE");
+        assert(!client.isBalanced());
+    }
+
+    @Test
+    public void testIsBalanced_OTHER() {
+        client.setCounterTransfer("GERAG#$");
+        assert(!client.isBalanced());
+    }
 }

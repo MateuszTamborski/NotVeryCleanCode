@@ -4,6 +4,7 @@ public abstract class Constants {
     public static final String YES = "YES";
     public static final String CURRENCY_EURO = "CURRENCY_EURO";
     public static final String CURRENCY_FL = "CURRENCY_FL";
+    public static final String CURRENCY_USD = "CURRENCY_USD";
     public static final String FL_CURRENCY_CODE = "FL_CURRENCY_CODE";
     public static final String FL_CURRENCY_CODE_FOR_WEIRD_BANK = "FL_CURRENCY_CODE_FOR_WEIRD_BANK";
     public static final String DEBIT = "DEBIT";

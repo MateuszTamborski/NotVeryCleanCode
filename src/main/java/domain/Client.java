@@ -1,5 +1,7 @@
 package domain;
 
+import record.service.impl.Constants;
+
 public class Client {
 
     private String counterTransfer;
@@ -37,5 +39,9 @@ public class Client {
 
     public void setProfile(Object profile) {
         this.profile = profile;
+    }
+
+    public boolean isBalanced() {
+        return Constants.TRUE.equalsIgnoreCase(getCounterTransfer());
     }
 }

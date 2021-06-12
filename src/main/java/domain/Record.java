@@ -12,6 +12,7 @@ public class Record {
     private String beneficiaryName;
     private Bank bank;
     private String beneficiaryAccountNumber;
+    private Integer counterTransfer;
 
     public Currency getCurrency() {
         return currency;
@@ -83,5 +84,13 @@ public class Record {
         public void setName(String name) {
             this.name = name;
         }
+    }
+
+    public boolean isCounterTransferRecord() {
+        return Integer.valueOf(1).equals(getIsCounterTransferRecord());
+    }
+
+    public boolean hasFee() {
+        return Integer.valueOf(1).equals(getIsCounterTransferRecord());
     }
 }
