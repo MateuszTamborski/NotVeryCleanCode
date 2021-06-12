@@ -16,9 +16,7 @@ import record.service.impl.Constants;
 
 public class ConfirmationLetterGenerator {
 
-    @SuppressWarnings("unused")
     private static Log logger = LogFactory.getLog(ConfirmationLetterGenerator.class);
-    private static final String COLLECTIVE = "collectief";
 
     private String crediting;
     private String debiting;
@@ -44,64 +42,84 @@ public class ConfirmationLetterGenerator {
                                               FileExtension extension, List<Record> records,
                                               List<TempRecord> faultyAccountNumberRecordList,
                                               List<TempRecord> sansDuplicateFaultRecordsList
-                                              // ,
-                                              // List<BigDecimal> retrievedAmountFL,
-                                              // List<BigDecimal> retrievedAmountEUR,
-                                              // List<BigDecimal> retrievedAmountUSD
     ) {
 
+        ConfirmationLetter letter = createConfirmationLetter(fileUploadCommand, client, hashBatchRecordsBalance,
+                branchName, bankMap, faultyRecords, extension, records, faultyAccountNumberRecordList,
+                sansDuplicateFaultRecordsList);
+
+        OurOwnByteArrayOutputStream arrayOutputStream = generateConfirmationLetterAsPDF(client, letter);
+
+        context.getConversationScope().asMap().put("dsbByteArrayOutputStream", arrayOutputStream);
+
+        return arrayOutputStream;
+    }
+
+    private OurOwnByteArrayOutputStream generateConfirmationLetterAsPDF(Client client, ConfirmationLetter letter) {
+        OurOwnByteArrayOutputStream arrayOutputStream = letterSelector
+                .generateLetter(client.getCreditDebit(), letter);
+        return arrayOutputStream;
+    }
+
+    private ConfirmationLetter createConfirmationLetter(FileUploadCommand fileUploadCommand, Client client,
+                                                        HashBatchRecordsBalance hashBatchRecordsBalance,
+                                                        String branchName, List<AmountAndRecordsPerBank> bankMap,
+                                                        List<FaultRecord> faultyRecords, FileExtension extension,
+                                                        List<Record> records, List<TempRecord> faultyAccountNumberRecordList,
+                                                        List<TempRecord> sansDuplicateFaultRecordsList) {
+
         ConfirmationLetter letter = new ConfirmationLetter();
+
         letter.setCurrency(records.get(0).getCurrency());
         letter.setExtension(extension);
 
-        letter.setHashTotalCredit(hashBatchRecordsBalance.getHashTotalCredit()
-                .toString());
-        letter.setHashTotalDebit(hashBatchRecordsBalance.getHashTotalDebit()
-                .toString());
+        letter.setHashTotalCredit(hashBatchRecordsBalance.getHashTotalCredit().toString());
+        letter.setHashTotalDebit(hashBatchRecordsBalance.getHashTotalDebit().toString());
 
-        letter.setBatchTotalDebit(debitBatchTotal(
-                hashBatchRecordsBalance.getBatchTotals(), client).toString());
-        letter.setBatchTotalCredit(creditBatchTotal(
-                hashBatchRecordsBalance.getBatchTotals(), client).toString());
+        letter.setBatchTotalDebit(hashBatchRecordsBalance.calculateTotalOverBatches(client.getAmountDivider(),
+                Constants.DEBIT).toString());
+        letter.setBatchTotalCredit(hashBatchRecordsBalance.calculateTotalOverBatches(client.getAmountDivider(),
+                Constants.CREDIT).toString());
 
-        letter.setTotalProcessedRecords(hashBatchRecordsBalance
-                .getRecordsTotal().toString());
-        if (fileUploadCommand.getFee().equalsIgnoreCase(Constants.YES)) {
-            letter.setTransactionCost(hashBatchRecordsBalance.getTotalFee()
-                    .toString());
-        } else
-            letter.setTransactionCost("");
+        letter.setTotalProcessedRecords(hashBatchRecordsBalance.getRecordsTotal().toString());
+
         letter.setTransferType(hashBatchRecordsBalance.getCollectionType());
         // // logger.debug("letter method, bankMap: "+bankMap.size());
         letter.setBanks(bankMap);
 
-        // uncommented this line
         letter.setCreditingErrors(faultyRecords);
         letter.setClient(client);
         letter.setBranchName(branchName);
+
+        letter.setTransactionCost(getTransactionCost(fileUploadCommand, hashBatchRecordsBalance));
+
+
+        // uncommented this line
+
         Map<String, BigDecimal> retrievedAmounts = new HashMap<String, BigDecimal>();
         retrievedAmounts = calculateRetrieveAmounts(records, faultyRecords,
                 client, extension, faultyAccountNumberRecordList,
                 sansDuplicateFaultRecordsList);
-        letter.setRetrievedAmountEur(retrievedAmounts
-                .get(Constants.CURRENCY_EURO));
-        letter.setRetrievedAmountFL(retrievedAmounts
-                .get(Constants.CURRENCY_FL));
-        letter.setRetrievedAmountUsd(retrievedAmounts
-                .get(Constants.CURRENCY_FL));
+
+        letter.setRetrievedAmountEur(retrievedAmounts.get(Constants.CURRENCY_EURO));
+        letter.setRetrievedAmountFL(retrievedAmounts.get(Constants.CURRENCY_FL));
+        letter.setRetrievedAmountUsd(retrievedAmounts.get(Constants.CURRENCY_FL));
 //		System.out.println("TRACING AMOUNT ["+letter.getRetrievedAmountFL()+"]");
         // letter.setRetrievedAmountFLDBF(retrievedAmounts.get("FLDBF"));
         // letter.setRetrievedAmountUSDDBF(retrievedAmounts.get("USDDBF"));
         // letter.setRetrievedAmountEURDBF(retrievedAmounts.get("EURDBF"));
         letter.setTotalRetrievedRecords(fileUploadCommand.getTotalRecords());
-        OurOwnByteArrayOutputStream arrayOutputStream = letterSelector
-                .generateLetter(client.getCreditDebit(), letter);
-
-        context.getConversationScope().asMap().put("dsbByteArrayOutputStream",
-                arrayOutputStream);
-
-        return arrayOutputStream;
+        return letter;
     }
+
+    private String getTransactionCost(FileUploadCommand fileUploadCommand, HashBatchRecordsBalance hashBatchRecordsBalance) {
+        String transactionCost = "";
+        if (fileUploadCommand.hasFee()) {
+            transactionCost = hashBatchRecordsBalance.getTotalFee().toString();
+        }
+        return transactionCost;
+    }
+
 
     // Calculate sum amount from faultyAccountnumber list
 
@@ -487,31 +505,6 @@ public class ConfirmationLetterGenerator {
         }
 
         return retrievedAmounts;
-    }
-
-    private BigDecimal creditBatchTotal(Map<Integer, BatchTotal> batchTotals,
-                                        Client client) {
-        Double sum = new Double(0);
-        Iterator<BatchTotal> itr = batchTotals.values().iterator();
-        while (itr.hasNext()) {
-            BatchTotal total = itr.next();
-
-            sum = sum + total.getCreditValue().doubleValue();
-        }
-        Double d = sum / new Double(client.getAmountDivider());
-        return new BigDecimal(d);
-    }
-
-    private BigDecimal debitBatchTotal(Map<Integer, BatchTotal> batchTotals,
-                                       Client client) {
-        Double sum = new Double(0);
-        Iterator<BatchTotal> itr = batchTotals.values().iterator();
-        while (itr.hasNext()) {
-            BatchTotal total = itr.next();
-            sum = sum + total.getCreditCounterValueForDebit().doubleValue();
-        }
-        Double d = sum / new Double(client.getAmountDivider());
-        return new BigDecimal(d);
     }
 
     private List<AmountAndRecordsPerBank> amountAndRecords(

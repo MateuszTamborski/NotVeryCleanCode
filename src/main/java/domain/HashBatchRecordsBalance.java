@@ -1,6 +1,8 @@
 package domain;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -8,14 +10,14 @@ public class HashBatchRecordsBalance {
 
     private BigDecimal hashTotalCredit;
     private BigDecimal hashTotalDebit;
-    private Map<Integer, BatchTotal> batchTotals;
+    private Collection<BatchTotal> batchTotals;
     private BigDecimal totalFee;
     private String collectionType;
 
     public HashBatchRecordsBalance() {
         hashTotalCredit = BigDecimal.ZERO;
         hashTotalDebit = BigDecimal.ZERO;
-        batchTotals = new HashMap<>();
+        batchTotals = new ArrayList<>();
         totalFee = BigDecimal.ZERO;
         collectionType = "";
     }
@@ -36,7 +38,7 @@ public class HashBatchRecordsBalance {
         this.hashTotalDebit = hashTotalDebit;
     }
 
-    public void setBatchTotals(Map<Integer, BatchTotal> batchTotals) {
+    public void setBatchTotals(Collection<BatchTotal> batchTotals) {
         this.batchTotals = batchTotals;
     }
 
@@ -48,7 +50,7 @@ public class HashBatchRecordsBalance {
         this.collectionType = collectionType;
     }
 
-    public Map<Integer, BatchTotal> getBatchTotals() {
+    public Collection<BatchTotal> getBatchTotals() {
         return batchTotals;
     }
 
@@ -63,5 +65,13 @@ public class HashBatchRecordsBalance {
 
     public String getCollectionType() {
         return collectionType;
+    }
+
+    public BigDecimal calculateTotalOverBatches(Integer amountDivider, String sign) {
+        BigDecimal sum = BigDecimal.ZERO;
+        for (BatchTotal batchTotal : batchTotals) {
+            sum = sum.add(batchTotal.getTotalForSign(sign));
+        }
+        return sum.divide(new BigDecimal(amountDivider));
     }
 }

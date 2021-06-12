@@ -1,5 +1,7 @@
 package domain;
 
+import record.service.impl.Constants;
+
 import java.math.BigDecimal;
 
 public class BatchTotal {
@@ -35,5 +37,15 @@ public class BatchTotal {
 
     public void setTransactionSign(String sign) {
         this.transactionSign = sign;
+    }
+
+    public BigDecimal getTotalForSign(String sign) {
+        BigDecimal value = null;
+        if (Constants.CREDIT.equals(sign)) {
+            value = getCreditValue();
+        } else if (Constants.DEBIT.equals(sign)) {
+            value = getCreditCounterValueForDebit();
+        }
+        return value;
     }
 }
